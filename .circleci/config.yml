@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  build_and_test:
+  build:
     docker:
       - image: cimg/node:18.17
     steps:
@@ -15,10 +15,22 @@ jobs:
           name: Run tests
           command: npm test || echo "Sem testes ainda"
 
+  build_and_push_docker:
+    docker:
+      - image: cimg/node:18.17
+      steps:
+      - checkout
+
+      - run:
+          name: Show environment variable
+          command: |
+            echo "Environment: $ENVIRONMENT"
+
       - setup_remote_docker
+
       - run:
           name: Build Docker image
-          command: docker build -t hugocarvalh0/devops-repo:latest .
+          command: docker build -t hugocarvalh0/devops-repo:$ENVIRONMENT .
 
       - run:
           name: Docker Login
@@ -26,10 +38,13 @@ jobs:
 
       - run:
           name: Push image to DockerHub
-          command: docker push hugocarvalh0/devops-repo:latest
+          command: docker push hugocarvalh0/devops-repo:$ENVIRONMENT
 
 workflows:
   version: 2
-  build_and_test_workflow:
+  build_test_and_deploy:
     jobs:
-      - build_and_test
+      - build
+      - build_and_push_docker:
+          requires:
+            - build
